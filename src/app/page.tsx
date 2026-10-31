@@ -4,9 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth) redirect("/login");
   const { data: membership } = await supabase
     .from("memberships")
     .select("email, schools(short_name), campuses(name)")
+    .eq("user_id", auth.claims.sub)
     .maybeSingle();
   if (!membership) redirect("/onboarding");
 

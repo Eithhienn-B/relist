@@ -5,7 +5,13 @@ import { OnboardingForm } from "./form";
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
-  const { data: membership } = await supabase.from("memberships").select("user_id").maybeSingle();
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth) redirect("/login");
+  const { data: membership } = await supabase
+    .from("memberships")
+    .select("user_id")
+    .eq("user_id", auth.claims.sub)
+    .maybeSingle();
   if (membership) redirect("/");
 
   const thisYear = new Date().getFullYear();

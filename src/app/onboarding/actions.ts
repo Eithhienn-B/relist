@@ -10,6 +10,9 @@ export async function createMembership(_prev: string | undefined, formData: Form
     p_grad_year: Number(formData.get("grad_year")),
     p_is_18_plus: formData.get("is_18_plus") === "on",
   });
-  if (error) return error.message;
+  // 23505: already a member (double submit or back button), so just go home.
+  if (error && error.code !== "23505") {
+    return error.code === "22023" ? error.message : "We couldn't finish sign-up. Try again.";
+  }
   redirect("/");
 }

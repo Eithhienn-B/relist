@@ -28,11 +28,17 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
 
   const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
-  if (!data?.claims && !isPublic) {
+  const target = !data?.claims && !isPublic ? "/login" : data?.claims && isPublic ? "/" : null;
+  if (target) {
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    url.pathname = target;
     const redirect = NextResponse.redirect(url);
+    // Carry refreshed session cookies and no-cache headers, or the user is signed out / the response cached.
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
+    for (const h of ["cache-control", "expires", "pragma"]) {
+      const v = response.headers.get(h);
+      if (v) redirect.headers.set(h, v);
+    }
     return redirect;
   }
 

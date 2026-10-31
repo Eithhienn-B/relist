@@ -43,6 +43,10 @@ export default function LoginPage() {
                 maxLength={6} required autoFocus aria-describedby="code-error" className="tracking-[0.4em]" />
               {codeState.error && <p id="code-error" role="alert" className="text-sm text-destructive">{codeState.error}</p>}
               <Button type="submit" disabled={verifying}>{verifying ? "Checking…" : "Sign in"}</Button>
+              {/* Full reload resets both action states back to the email step. */}
+              <a href="/login" className="text-center text-sm text-muted-foreground underline-offset-4 hover:underline">
+                Use a different email
+              </a>
             </form>
           )}
         </CardContent>
