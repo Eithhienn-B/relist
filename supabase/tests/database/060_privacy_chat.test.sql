@@ -1,7 +1,7 @@
 -- Privacy suite, chat: threads, messages, blocks, the send path and the realtime publication.
 -- Alice sells, Bob buys, Carol is a third member, Mallory never finished sign-up.
 begin;
-select plan(44);
+select plan(45);
 
 select id as indy from public.campuses where name = 'Indianapolis' \gset
 select tests.create_user('alice@purdue.edu') as alice \gset
@@ -96,8 +96,8 @@ select ok(exists (select 1 from pg_publication_tables where pubname = 'supabase_
   'messages are published to realtime');
 select is_empty(
   $$ select tablename from pg_publication_tables where pubname = 'supabase_realtime'
-     and tablename not in ('messages') $$,
-  'no other table is published to realtime');
+     and tablename not in ('messages', 'threads') $$,
+  'only messages and threads (read receipts) are published to realtime');
 
 -- Rate limits (per thread per minute, per user per hour)
 select tests.authenticate_as(:'carol');
@@ -138,7 +138,9 @@ select is_empty(format('select 1 from public.listings where seller_id = %L', :'a
   'the blocked user no longer sees the blocker''s listings');
 select throws_ok(format('delete from public.blocks where blocker_id = %L', :'alice'), '42501', null,
   'the blocked user cannot remove the block');
-select is((select count(*)::int from public.messages where thread_id = :'t1'), 2, 'the thread history stays readable');
+select is((select count(*)::int from public.messages where thread_id = :'t1' and event is null), 2, 'the thread history stays readable');
+select is((select body from public.messages where thread_id = :'t1' and event = 'ended'), 'This conversation has ended.',
+  'both sides get a live "ended" event that doesn''t say who blocked');
 select tests.authenticate_as(:'alice');
 select is_empty(format('select 1 from public.listings where id = %L', :'book'),
   'the blocker no longer sees the blocked user''s listings');

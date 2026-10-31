@@ -12,7 +12,7 @@ export default async function ThreadPage({ params }: PageProps<"/messages/[id]">
 
   const { data: thread } = await supabase
     .from("threads")
-    .select("id, listing_id, buyer_id, seller_id, closed_at, listings(title, price_cents, status, listing_photos(path, position))")
+    .select("id, listing_id, buyer_id, seller_id, closed_at, buyer_read_at, seller_read_at, listings(title, price_cents, status, listing_photos(path, position))")
     .eq("id", id)
     .maybeSingle();
   if (!thread) notFound();
@@ -59,6 +59,7 @@ export default async function ThreadPage({ params }: PageProps<"/messages/[id]">
         <Chat
           threadId={thread.id}
           listingId={thread.listing_id}
+          initialOtherReadAt={isSeller ? thread.buyer_read_at : thread.seller_read_at}
           isSeller={isSeller}
           initialOffers={offers ?? []}
           initialListingStatus={listing?.status ?? null}
