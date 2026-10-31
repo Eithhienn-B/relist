@@ -44,7 +44,20 @@ begin
 end;
 $$;
 
-grant execute on all functions in schema tests to anon, authenticated;
+-- The server's secret-key client: PostgREST runs it as service_role with no user (auth.uid() is null).
+create or replace function tests.authenticate_as_service()
+returns void
+language plpgsql
+set search_path = ''
+as $$
+begin
+  perform set_config('request.jwt.claims', '{"role":"service_role"}', true);
+  perform set_config('role', 'service_role', true);
+end;
+$$;
+
+grant usage on schema tests to service_role;
+grant execute on all functions in schema tests to anon, authenticated, service_role;
 
 begin;
 select plan(1);
