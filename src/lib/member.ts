@@ -15,9 +15,7 @@ export async function requireMember() {
   return { supabase, membership };
 }
 
-export const formatPrice = (cents: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: cents % 100 ? 2 : 0 })
-    .format(cents / 100);
+export { formatPrice } from "./money";
 
 export function timeAgo(iso: string, now = Date.now()) {
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000);

@@ -53,7 +53,7 @@ export default async function MessagesPage() {
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
                       {m ? (
-                        <><span className="font-medium">{m.sender_id === me ? "You" : role}:</span> {m.held ? "Held for review" : m.body}</>
+                        <>{m.sender_id && <span className="font-medium">{m.sender_id === me ? "You" : role}: </span>}{m.held ? "Held for review" : m.body}</>
                       ) : t.last_message_at ? `Chat with the ${role.toLowerCase()}` : "No messages yet"}
                     </p>
                   </div>

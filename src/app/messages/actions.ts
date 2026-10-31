@@ -6,7 +6,7 @@ import { moderateText } from "@/lib/moderation";
 import { detectOffPlatform } from "@/lib/nudge";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
-import { isUuid, userMessage } from "@/lib/chat-errors";
+import { HANDOFF_CODE_REFUSED, isUuid, userMessage } from "@/lib/chat-errors";
 import { REPORT_REASONS } from "@/lib/report-reasons";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,6 +29,7 @@ export async function sendMessage(threadId: string, body: string): Promise<{ ok:
   if (!auth) return { ok: false, error: "Your session expired. Sign in again." };
 
   // Cheap checks (party, block, rate limit) before the moderation call; send_message re-checks under a lock.
+  // The handoff-code check lives only in send_message: a body-taking pre-check was an oracle for the code.
   const { error: guard } = await supabase.rpc("can_send_message", { p_thread: threadId });
   if (guard) return { ok: false, error: userMessage(guard, "Couldn't send. Try again.") };
 
@@ -49,6 +50,8 @@ export async function sendMessage(threadId: string, body: string): Promise<{ ok:
     p_nudge: detectOffPlatform(text).length > 0,
   });
   if (error) return { ok: false, error: userMessage(error, "Couldn't send. Try again.") };
+  // null = it held a live handoff code; the code was burned (the buyer's code screen picks up the new one within 5 s).
+  if (!data?.id) return { ok: false, error: HANDOFF_CODE_REFUSED };
   return { ok: true, message: data };
 }
 

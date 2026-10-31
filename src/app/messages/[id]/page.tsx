@@ -12,15 +12,16 @@ export default async function ThreadPage({ params }: PageProps<"/messages/[id]">
 
   const { data: thread } = await supabase
     .from("threads")
-    .select("id, listing_id, buyer_id, seller_id, closed_at, listings(title, price_cents, listing_photos(path, position))")
+    .select("id, listing_id, buyer_id, seller_id, closed_at, listings(title, price_cents, status, listing_photos(path, position))")
     .eq("id", id)
     .maybeSingle();
   if (!thread) notFound();
 
   // shortcut: loads the last 200 messages with no "load older"; add paging when a thread gets that long.
-  const [{ data: messages }, { data: blocks }] = await Promise.all([
+  const [{ data: messages }, { data: blocks }, { data: offers }] = await Promise.all([
     supabase.from("messages").select("*").eq("thread_id", id).order("created_at", { ascending: false }).limit(200),
     supabase.from("blocks").select("blocker_id, blocked_id"),
+    supabase.from("offers").select("id, state, amount_cents, expires_at, created_at").eq("thread_id", id).order("created_at", { ascending: false }),
   ]);
 
   const me = membership.user_id;
@@ -50,12 +51,18 @@ export default async function ThreadPage({ params }: PageProps<"/messages/[id]">
             ) : <p className="truncate font-medium text-muted-foreground">Listing no longer available</p>}
             <p className="text-sm text-muted-foreground">
               {listing && <span className="tabular-nums">{formatPrice(listing.price_cents)} · </span>}
+              {listing && listing.status !== "active" && <span className="font-medium text-foreground">{listing.status === "sold" ? "Sold" : "On hold"} · </span>}
               {isSeller ? "Chat with a buyer" : "Chat with the seller"}
             </p>
           </div>
         </div>
         <Chat
           threadId={thread.id}
+          listingId={thread.listing_id}
+          isSeller={isSeller}
+          initialOffers={offers ?? []}
+          initialListingStatus={listing?.status ?? null}
+          listingPrice={listing?.price_cents ?? null}
           me={me}
           otherId={other}
           otherLabel={isSeller ? "Buyer" : "Seller"}
