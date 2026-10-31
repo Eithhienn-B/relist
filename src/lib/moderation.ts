@@ -1,3 +1,5 @@
+import "server-only";
+
 export type Moderation = { flagged: boolean; categories: string[] };
 
 // OpenAI omni-moderation on each photo plus the listing text.
