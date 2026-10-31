@@ -43,3 +43,7 @@ next-env.d.ts
 
 # per-user Claude Code permissions
 .claude/settings.local.json
+
+# Playwright sessions (signed-in cookies)
+e2e/.state-*.json
+e2e/shots/

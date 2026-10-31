@@ -1,6 +1,6 @@
 -- Guardrail: no table or view in `public` can ship without row level security.
 begin;
-select plan(9);
+select plan(10);
 
 select is_empty(
   $$ select table_name, privilege_type from information_schema.role_table_grants
@@ -53,6 +53,16 @@ select is_empty(
                        where p.schemaname = 'storage' and p.tablename = 'objects'
                          and p.qual like '%' || quote_literal(b.id) || '%') $$,
   'every storage bucket has a policy scoped to it'
+);
+
+-- postgres_changes delivers a row to every subscriber who passes its SELECT policy, so a
+-- published table without RLS or a select policy would broadcast to everyone.
+select is_empty(
+  $$ select pt.tablename from pg_publication_tables pt join pg_class c on c.oid = (pt.schemaname || '.' || pt.tablename)::regclass
+     where pt.pubname = 'supabase_realtime'
+       and (not c.relrowsecurity
+            or not exists (select 1 from pg_policy p where p.polrelid = c.oid and p.polcmd in ('r', '*'))) $$,
+  'every table published to realtime has RLS and a select policy'
 );
 
 create table public.rls_probe (id int);

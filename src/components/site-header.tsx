@@ -12,6 +12,7 @@ export function SiteHeader({ email }: { email: string }) {
         </Link>
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/" className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground">Browse</Link>
+          <Link href="/messages" className="rounded-md px-2 py-1 text-muted-foreground hover:text-foreground">Messages</Link>
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <span className="hidden text-sm text-muted-foreground sm:inline">{email}</span>

@@ -23,7 +23,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "campuses": {
+            "blocks": {
+                  Row: {
+                    "blocked_id": string,"blocker_id": string,"created_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked_id": string,"blocker_id": string,"created_at"?: string
+                  }
+                  Update: {
+                    "blocked_id"?: string,"blocker_id"?: string,"created_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"campuses": {
                   Row: {
                     "id": number,"is_default": boolean,"location": unknown,"name": string,"school_id": number
                   }
@@ -45,14 +59,14 @@ isOneToOne: false
                   ]
                 },"config": {
                   Row: {
-                    "fee_bps": number,"fee_threshold_cents": number,"id": number,"listing_radius_m": number,"location_check_ttl": string,"location_max_accuracy_m": number,"min_price_cents": number,"offer_window": string,"school_id": number | null
+                    "fee_bps": number,"fee_threshold_cents": number,"id": number,"listing_radius_m": number,"location_check_ttl": string,"location_max_accuracy_m": number,"min_price_cents": number,"msg_thread_per_minute": number,"msg_user_per_hour": number,"offer_window": string,"reports_per_day": number,"school_id": number | null,"threads_per_hour": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"offer_window"?: string,"school_id"?: number | null
+                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
                   }
                   Update: {
-                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"offer_window"?: string,"school_id"?: number | null
+                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
                   }
                   Relationships: [
                     {
@@ -155,6 +169,52 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"messages": {
+                  Row: {
+                    "body": string,"created_at": string,"held": boolean,"id": number,"nudge": boolean,"sender_id": string,"thread_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body": string,"created_at"?: string,"held"?: boolean,"id"?: never,"nudge"?: boolean,"sender_id": string,"thread_id": string
+                  }
+                  Update: {
+                    "body"?: string,"created_at"?: string,"held"?: boolean,"id"?: never,"nudge"?: boolean,"sender_id"?: string,"thread_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "messages_thread_id_fkey"
+      columns: ["thread_id"]
+isOneToOne: false
+      referencedRelation: "threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"reports": {
+                  Row: {
+                    "created_at": string,"flags": (string)[],"id": number,"listing_id": string | null,"message_id": number | null,"note": string | null,"quoted": string | null,"reason": string,"reported_user_id": string | null,"reporter_id": string | null,"resolved_at": string | null,"resolved_by": string | null,"source": string,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"flags"?: (string)[],"id"?: never,"listing_id"?: string | null,"message_id"?: number | null,"note"?: string | null,"quoted"?: string | null,"reason": string,"reported_user_id"?: string | null,"reporter_id"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"source"?: string,"status"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"flags"?: (string)[],"id"?: never,"listing_id"?: string | null,"message_id"?: number | null,"note"?: string | null,"quoted"?: string | null,"reason"?: string,"reported_user_id"?: string | null,"reporter_id"?: string | null,"resolved_at"?: string | null,"resolved_by"?: string | null,"source"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "reports_listing_id_fkey"
+      columns: ["listing_id"]
+isOneToOne: false
+      referencedRelation: "listings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "reports_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "messages"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"school_domains": {
                   Row: {
                     "approved_at": string | null,"domain": string,"evidence_url": string | null,"school_id": number
@@ -189,13 +249,52 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"threads": {
+                  Row: {
+                    "buyer_id": string,"closed_at": string | null,"created_at": string,"id": string,"last_message_at": string | null,"listing_id": string,"seller_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "buyer_id": string,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id": string,"seller_id": string
+                  }
+                  Update: {
+                    "buyer_id"?: string,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id"?: string,"seller_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "threads_listing_id_fkey"
+      columns: ["listing_id"]
+isOneToOne: false
+      referencedRelation: "listings"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "check_location":
+            "admin_reports":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "created_at": string,"flags": (string)[],"id": number,"listing_id": string,"listing_status": string,"listing_title": string,"message_id": number,"note": string,"quoted": string,"reason": string,"reported_email": string,"reported_suspended": boolean,"reported_user_id": string,"reporter_email": string,"source": string,"status": string
+            }[]
+                           },
+"admin_resolve_report":
+{ Args: { "p_action": string,"p_report": number }; Returns: undefined
+                           },
+"admin_stats":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "held_messages_7d": number,"nudged_messages_7d": number,"open_reports": number
+            }[]
+                           },
+"block_user":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"can_send_message":
+{ Args: { "p_thread": string }; Returns: undefined
+                           },
+"check_location":
 { Args: { "p_accuracy_m": number,"p_lat": number,"p_lng": number }; Returns: {
               "campus_id": number,"campus_name": string,"expires_at": string,"passed": boolean,"reason": string,"school_name": string
             }[]
@@ -239,7 +338,29 @@ isOneToOne: false
       } },
 "nearest_campus":
 { Args: { "p_lat": number,"p_lng": number }; Returns: number
-                           }
+                           },
+"open_thread":
+{ Args: { "p_listing": string }; Returns: string
+                           },
+"report":
+{ Args: { "p_listing_id"?: string,"p_message_id"?: number,"p_note"?: string,"p_reason": string,"p_user_id"?: string }; Returns: number
+                           },
+"send_message":
+{ Args: { "p_body": string,"p_flags": (string)[],"p_nudge": boolean,"p_sender": string,"p_thread": string }; Returns: {
+              "body": string,
+"created_at": string,
+"held": boolean,
+"id": number,
+"nudge": boolean,
+"sender_id": string,
+"thread_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "messages"
+        isOneToOne: true
+        isSetofReturn: false
+      } }
           }
           Enums: {
             [_ in never]: never
