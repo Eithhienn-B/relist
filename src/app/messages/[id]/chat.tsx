@@ -75,8 +75,6 @@ export function Chat({ threadId, listingId, me, otherId, otherLabel, initial, en
     for (const r of rows) if (r.id > lastId.current) lastId.current = r.id;
   }, [rows]);
 
-
-
   // Live inserts. RLS on messages decides what this subscriber receives (held rows and other threads never arrive).
   useEffect(() => {
     const supabase = createClient();

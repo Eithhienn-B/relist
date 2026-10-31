@@ -88,12 +88,14 @@ function BuyerCode({ offerId, expiresAt, onGone }: { offerId: string; expiresAt:
   const [left, setLeft] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const deadline = useRef(0); // when to fetch the next code (local clock)
+  const fetchedAt = useRef(0);
   const inflight = useRef(false);
 
   const load = useCallback(async () => {
     if (inflight.current) return;
     inflight.current = true;
     const sent = Date.now();
+    fetchedAt.current = sent;
     try {
       const { data, error: err } = await createClient().rpc("handoff_code", { p_offer: offerId });
       const row = data?.[0];
@@ -120,7 +122,8 @@ function BuyerCode({ offerId, expiresAt, onGone }: { offerId: string; expiresAt:
     const tick = setInterval(() => {
       const s = Math.ceil((deadline.current - Date.now()) / 1000);
       setLeft(Math.max(0, s));
-      if (s <= 0) void load();
+      // Also re-check every 5 s: a code caught in chat is burned server-side, and the new one must show up fast.
+      if (s <= 0 || Date.now() - fetchedAt.current > 5000) void load();
     }, 250);
     // Keep the screen awake while the code is up (re-requested when the tab comes back; the browser drops it on hide).
     let lock: { release: () => Promise<void> } | undefined;

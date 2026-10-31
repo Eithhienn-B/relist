@@ -50,7 +50,7 @@ export async function sendMessage(threadId: string, body: string): Promise<{ ok:
     p_nudge: detectOffPlatform(text).length > 0,
   });
   if (error) return { ok: false, error: userMessage(error, "Couldn't send. Try again.") };
-  // null = it held a live handoff code; the code was burned and a new one is on the buyer's screen.
+  // null = it held a live handoff code; the code was burned (the buyer's code screen picks up the new one within 5 s).
   if (!data?.id) return { ok: false, error: HANDOFF_CODE_REFUSED };
   return { ok: true, message: data };
 }

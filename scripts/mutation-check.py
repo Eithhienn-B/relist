@@ -5,7 +5,7 @@ import pathlib
 import subprocess
 
 MIG = pathlib.Path("supabase/migrations/20261101000001_offers.sql")
-ORIGINAL = MIG.read_text(encoding="utf8")
+ORIGINAL = MIG.read_bytes().decode("utf8")
 
 # (guard, text to find, replacement, test that must go red)
 MUTATIONS = [
@@ -56,7 +56,7 @@ results = []
 try:
     for name, find, repl, test in MUTATIONS:
         assert ORIGINAL.count(find) == 1, f"mutation target not unique/found: {name}"
-        MIG.write_text(ORIGINAL.replace(find, repl), encoding="utf8")
+        MIG.write_bytes(ORIGINAL.replace(find, repl).encode("utf8"))
         reset = run("npx supabase db reset")
         res = run("npx supabase test db")
         out = res.stdout + res.stderr
@@ -65,7 +65,7 @@ try:
         results.append((name, test, bool(red), reset.returncode))
         print(f"{'RED ' if red else 'MISS'} {name} -> {test!r}", flush=True)
 finally:
-    MIG.write_text(ORIGINAL, encoding="utf8")
+    MIG.write_bytes(ORIGINAL.encode("utf8"))  # bytes: no CRLF rewrite on Windows
     run("npx supabase db reset")
     done = run("npx supabase test db")
     final = [l for l in (done.stdout + done.stderr).splitlines() if l.startswith("Result")]
