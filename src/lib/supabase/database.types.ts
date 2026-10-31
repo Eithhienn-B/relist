@@ -63,6 +63,72 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"listing_photos": {
+                  Row: {
+                    "created_at": string,"flags": (string)[],"id": string,"listing_id": string,"moderation": string,"path": string,"position": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"flags"?: (string)[],"id"?: string,"listing_id": string,"moderation": string,"path": string,"position"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"flags"?: (string)[],"id"?: string,"listing_id"?: string,"moderation"?: string,"path"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "listing_photos_listing_id_fkey"
+      columns: ["listing_id"]
+isOneToOne: false
+      referencedRelation: "listings"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"listings": {
+                  Row: {
+                    "campus_id": number,"category": string,"created_at": string,"description": string,"id": string,"price_cents": number,"school_id": number | null,"search": unknown,"seller_id": string,"status": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "campus_id": number,"category": string,"created_at"?: string,"description"?: string,"id"?: string,"price_cents": number,"school_id"?: number | null,"search"?: never,"seller_id": string,"status"?: string,"title": string
+                  }
+                  Update: {
+                    "campus_id"?: number,"category"?: string,"created_at"?: string,"description"?: string,"id"?: string,"price_cents"?: number,"school_id"?: number | null,"search"?: never,"seller_id"?: string,"status"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "listings_campus_id_fkey"
+      columns: ["campus_id"]
+isOneToOne: false
+      referencedRelation: "campuses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "listings_school_id_fkey"
+      columns: ["school_id"]
+isOneToOne: false
+      referencedRelation: "schools"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"location_checks": {
+                  Row: {
+                    "accuracy_m": number,"campus_id": number | null,"checked_at": string,"id": number,"passed": boolean,"reason": string | null,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accuracy_m": number,"campus_id"?: number | null,"checked_at"?: string,"id"?: never,"passed": boolean,"reason"?: string | null,"user_id": string
+                  }
+                  Update: {
+                    "accuracy_m"?: number,"campus_id"?: number | null,"checked_at"?: string,"id"?: never,"passed"?: boolean,"reason"?: string | null,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "location_checks_campus_id_fkey"
+      columns: ["campus_id"]
+isOneToOne: false
+      referencedRelation: "campuses"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"memberships": {
                   Row: {
                     "campus_id": number | null,"created_at": string,"email": string,"grad_season": string,"grad_year": number,"is_18_plus": boolean,"school_id": number | null,"user_id": string
@@ -129,7 +195,32 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "create_membership":
+            "check_location":
+{ Args: { "p_accuracy_m": number,"p_lat": number,"p_lng": number }; Returns: {
+              "campus_id": number,"campus_name": string,"expires_at": string,"passed": boolean,"reason": string,"school_name": string
+            }[]
+                           },
+"create_listing":
+{ Args: { "p_category": string,"p_description": string,"p_price_cents": number,"p_title": string }; Returns: {
+              "campus_id": number,
+"category": string,
+"created_at": string,
+"description": string,
+"id": string,
+"price_cents": number,
+"school_id": number | null,
+"search": unknown,
+"seller_id": string,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "listings"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"create_membership":
 { Args: { "p_grad_season": string,"p_grad_year": number,"p_is_18_plus": boolean }; Returns: {
               "campus_id": number | null,
 "created_at": string,
@@ -145,7 +236,10 @@ isOneToOne: false
         to: "memberships"
         isOneToOne: true
         isSetofReturn: false
-      } }
+      } },
+"nearest_campus":
+{ Args: { "p_lat": number,"p_lng": number }; Returns: number
+                           }
           }
           Enums: {
             [_ in never]: never
