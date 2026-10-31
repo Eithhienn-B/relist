@@ -1,6 +1,6 @@
 -- Privacy suite, listings: listings, listing_photos, location_checks and the listing-photos bucket.
 begin;
-select plan(24);
+select plan(25);
 
 select id as indy from public.campuses where name = 'Indianapolis' \gset
 
@@ -72,6 +72,8 @@ select ok(
   (select count(*) = 3 from public.listing_photos),
   'a seller sees their own held photos');
 select is((select count(*)::int from public.location_checks), 1, 'a user sees their own location checks');
+select throws_ok('select flags from public.listing_photos', '42501', null,
+  'a seller cannot read which moderation categories fired');
 select throws_ok(format($$ update public.listings set status = 'active' where id = %L $$, :'removed'),
   '42501', null, 'a seller cannot write their listing row directly');
 

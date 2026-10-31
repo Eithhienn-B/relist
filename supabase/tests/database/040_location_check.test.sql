@@ -1,7 +1,7 @@
 -- Listing location check: every listing needs a recent, accurate device location within
 -- listing_radius_m (5 mi) of a campus, and the server, never the client, picks the campus.
 begin;
-select plan(22);
+select plan(27);
 
 select id as indy from public.campuses where name = 'Indianapolis' \gset
 select id as wl from public.campuses where name = 'West Lafayette' \gset
@@ -134,6 +134,25 @@ select throws_ok(
   format('select * from public.check_location(%s, %s, 20)', :lat_49, :lng_49),
   '42501', null, 'a signed-in user without a membership cannot check location'
 );
+select is(public.nearest_campus(:lat_49, :lng_49), null, 'near-me lookup returns nothing for a non-member');
+
+-- Bob: 20 listings today, a passing check, and a 9-day-old check that his next check prunes.
+reset role;
+insert into public.listings (seller_id, school_id, campus_id, title, price_cents, category)
+select :'bob', 243780, :indy, 'Item ' || g, 1500, 'other' from generate_series(1, 20) g;
+insert into public.location_checks (user_id, campus_id, passed, accuracy_m, checked_at)
+values (:'bob', :indy, true, 20, now() - interval '9 days');
+select tests.authenticate_as(:'bob');
+select is((select passed from public.check_location(:lat_49, :lng_49, 20)), true, 'bob passes a fresh check');
+select is(
+  (select count(*)::int from public.location_checks where checked_at < now() - interval '7 days'), 0,
+  'a new check prunes the user''s checks older than 7 days'
+);
+select throws_ok(
+  $$ select public.create_listing('Mini fridge', '', 6000, 'kitchen') $$,
+  '54000', null, 'listings are capped at 20 per day per seller'
+);
+select is(public.nearest_campus(:lat_49, :lng_49), :indy::bigint, 'near-me lookup finds the nearest campus for a member');
 
 reset role;
 

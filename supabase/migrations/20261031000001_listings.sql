@@ -77,7 +77,9 @@ create policy "users see their own location checks" on public.location_checks fo
 -- Read only for clients. Rows are written by create_listing(), check_location() and the upload
 -- server action (secret key, after EXIF strip + moderation).
 revoke all on public.listings, public.listing_photos, public.location_checks from anon, authenticated;
-grant select on public.listings, public.listing_photos, public.location_checks to authenticated;
+grant select on public.listings, public.location_checks to authenticated;
+-- Column grant: sellers see that a photo is held, not which moderation categories fired.
+grant select (id, listing_id, path, position, moderation, created_at) on public.listing_photos to authenticated;
 
 -- Photo bucket: private, webp only (the server re-encodes every upload). No client write policies.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -154,6 +156,10 @@ begin
      or p_lat not between -90 and 90 or p_lng not between -180 and 180 or p_accuracy_m < 0 then
     raise exception 'That location doesn''t look right. Try again.' using errcode = '22023';
   end if;
+  -- Serialize per user so parallel calls can't all pass the count below.
+  perform pg_advisory_xact_lock(hashtextextended('location_checks:' || v_uid::text, 0));
+  -- Keep only a week of history; a check is only useful for location_check_ttl anyway.
+  delete from public.location_checks lc where lc.user_id = v_uid and lc.checked_at < now() - interval '7 days';
   if (select count(*) from public.location_checks lc
       where lc.user_id = v_uid and lc.checked_at > now() - interval '1 hour') >= 30 then
     raise exception 'Too many location checks. Try again in an hour.' using errcode = '54000';
@@ -227,6 +233,7 @@ begin
   if v_reason is not null then
     raise exception '%', v_reason using errcode = '22023';
   end if;
+  perform pg_advisory_xact_lock(hashtextextended('listings:' || v_uid::text, 0));
   if (select count(*) from public.listings l where l.seller_id = v_uid and l.created_at > now() - interval '1 day') >= 20 then
     raise exception 'You''ve hit today''s listing limit (20).' using errcode = '54000';
   end if;
@@ -246,6 +253,7 @@ stable
 set search_path = ''
 as $$
   select c.id from public.campuses c
+  where exists (select 1 from public.memberships m where m.user_id = (select auth.uid()))
   order by c.location operator(extensions.<->)
     extensions.st_setsrid(extensions.st_makepoint(p_lng, p_lat), 4326)::extensions.geography
   limit 1;
