@@ -63,6 +63,14 @@ export async function blockUser(threadId: string, userId: string) {
   revalidatePath(`/messages/${threadId}`);
 }
 
+export async function unblockUser(threadId: string, userId: string) {
+  if (!isUuid(threadId) || !isUuid(userId)) return "Couldn't unblock. Try again.";
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("unblock_user", { p_user: userId });
+  if (error) return userMessage(error, "Couldn't unblock. Try again.");
+  revalidatePath(`/messages/${threadId}`);
+}
+
 export async function report(target: { messageId: number } | { listingId: string }, reason: string, note: string) {
   if (typeof reason !== "string" || !Object.hasOwn(REPORT_REASONS, reason)) return "Pick a reason.";
   if (typeof note !== "string") note = "";

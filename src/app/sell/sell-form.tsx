@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getPosition, locationErrorMessage } from "@/lib/geolocation";
 import { MAX_PHOTOS } from "@/lib/photos-limits";
+import { shrinkPhoto } from "@/lib/shrink-photo";
+import { CATEGORIES } from "@/lib/categories";
 import { checkLocation, createListing, type LocationResult } from "./actions";
 
 const fieldClass =
   "w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
-const CATEGORIES = ["furniture", "electronics", "textbooks", "clothing", "kitchen", "decor", "sports", "other"];
 
 type Passed = Extract<LocationResult, { ok: true }>;
 
@@ -47,11 +48,12 @@ export function SellForm({ initialCheck, minPrice }: { initialCheck?: Passed; mi
 
   // Submit by hand: a form action would reset every field when the server returns an error.
   // The file input is cleared after each pick, so the chosen photos are appended here.
-  function submit(e: React.FormEvent<HTMLFormElement>) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     formData.delete("photos");
-    photos.forEach((p) => formData.append("photos", p.file));
+    // Resize in the browser first (a 4 MB phone photo becomes ~0.5 MB); the server still re-encodes everything.
+    for (const p of photos) formData.append("photos", await shrinkPhoto(p.file));
     startTransition(() => action(formData));
   }
 

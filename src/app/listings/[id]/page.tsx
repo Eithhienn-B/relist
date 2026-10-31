@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, GraduationCap, MapPin, MessageCircle, ShieldAlert } from "lucide-react";
+import { ArrowLeft, GraduationCap, MapPin, MessageCircle, Pencil, ShieldAlert } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Report } from "@/components/report-form";
@@ -69,9 +69,16 @@ export default async function ListingPage({ params }: PageProps<"/listings/[id]"
               <p className="mt-3 text-sm text-muted-foreground capitalize">Status: {listing.status}</p>
             )}
             {isSeller ? (
-              <Link href="/messages" className={buttonVariants({ variant: "outline", className: "press mt-6 w-full" })}>
-                <MessageCircle aria-hidden /> {threads ? `${threads} buyer${threads === 1 ? "" : "s"} messaged you` : "Messages"}
-              </Link>
+              <div className="mt-6 grid gap-2">
+                <Link href="/messages" className={buttonVariants({ variant: "outline", className: "press w-full" })}>
+                  <MessageCircle aria-hidden /> {threads ? `${threads} buyer${threads === 1 ? "" : "s"} messaged you` : "Messages"}
+                </Link>
+                {(listing.status === "active" || listing.status === "pending") && (
+                  <Link href={`/listings/${listing.id}/edit`} className={buttonVariants({ variant: "ghost", className: "press w-full" })}>
+                    <Pencil aria-hidden /> Edit or take down
+                  </Link>
+                )}
+              </div>
             ) : listing.status === "active" && <MessageSeller listingId={listing.id} />}
             <p className="mt-3 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
               Meet on campus, in public, and pay only through ReList.

@@ -4,7 +4,11 @@ Usage: python scripts/mutation-check.py   (local stack running; restores the mig
 import pathlib
 import subprocess
 
-MIG = pathlib.Path("supabase/migrations/20261101000001_offers.sql")
+import sys
+
+# M3 by default; `python scripts/mutation-check.py later` checks the later-ideas guards.
+LATER = len(sys.argv) > 1 and sys.argv[1] == "later"
+MIG = pathlib.Path("supabase/migrations/20261101000002_later_ideas.sql" if LATER else "supabase/migrations/20261101000001_offers.sql")
 ORIGINAL = MIG.read_bytes().decode("utf8")
 
 # (guard, text to find, replacement, test that must go red)
@@ -47,6 +51,32 @@ MUTATIONS = [
      "a repeat scan reports completed"),
 ]
 
+
+LATER_MUTATIONS = [
+    ("update_listing: price locked while accepted",
+     "  if v_listing.status = 'pending' and p_price_cents is distinct from v_listing.price_cents then",
+     "  if false then",
+     "the price is locked while an offer is accepted"),
+    ("unblock: blocker only",
+     "delete from public.blocks b where b.blocker_id = v_uid and b.blocked_id = p_user;",
+     "delete from public.blocks b where v_uid in (b.blocker_id, b.blocked_id) and p_user in (b.blocker_id, b.blocked_id);",
+     "the blocked person cannot unblock"),
+    # (Dropping the party `where` alone changes nothing: the case expressions only ever stamp the caller's column.)
+    ("mark_thread_read: own receipt only",
+     "      seller_read_at = case when t.seller_id = v_uid then now()",
+     "      seller_read_at = case when v_uid is not null then now()",
+     "each party only stamps their own receipt"),
+    ("remove_listing: not while accepted",
+     "  if v_listing.status = 'pending' then\n    raise exception 'An offer is accepted. Cancel the trade in the chat first.'",
+     "  if false then\n    raise exception 'An offer is accepted. Cancel the trade in the chat first.'",
+     "a listing with an accepted offer cannot be removed"),
+    ("admin_reports: page cap",
+     "limit least(greatest(coalesce(p_limit, 50), 1), 200);",
+     "limit greatest(coalesce(p_limit, 50), 1);",
+     "a page is capped at 200"),
+]
+if LATER:
+    MUTATIONS = LATER_MUTATIONS
 
 def run(cmd):
     return subprocess.run(cmd, shell=True, capture_output=True, text=True, encoding="utf8", errors="replace")

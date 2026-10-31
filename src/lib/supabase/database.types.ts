@@ -303,14 +303,14 @@ isOneToOne: false
                   ]
                 },"threads": {
                   Row: {
-                    "buyer_id": string,"closed_at": string | null,"created_at": string,"id": string,"last_message_at": string | null,"listing_id": string,"seller_id": string
+                    "buyer_id": string,"buyer_read_at": string | null,"closed_at": string | null,"created_at": string,"id": string,"last_message_at": string | null,"listing_id": string,"seller_id": string,"seller_read_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "buyer_id": string,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id": string,"seller_id": string
+                    "buyer_id": string,"buyer_read_at"?: string | null,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id": string,"seller_id": string,"seller_read_at"?: string | null
                   }
                   Update: {
-                    "buyer_id"?: string,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id"?: string,"seller_id"?: string
+                    "buyer_id"?: string,"buyer_read_at"?: string | null,"closed_at"?: string | null,"created_at"?: string,"id"?: string,"last_message_at"?: string | null,"listing_id"?: string,"seller_id"?: string,"seller_read_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -357,7 +357,7 @@ isOneToOne: true
 { Args: { "p_offer": string }; Returns: undefined
                            },
 "admin_reports":
-{ Args: Record<PropertyKey, never>; Returns: {
+{ Args: { "p_before"?: number,"p_limit"?: number,"p_reason"?: string,"p_source"?: string,"p_status"?: string }; Returns: {
               "created_at": string,"flags": (string)[],"id": number,"listing_id": string,"listing_status": string,"listing_title": string,"message_id": number,"note": string,"quoted": string,"reason": string,"reported_email": string,"reported_suspended": boolean,"reported_user_id": string,"reporter_email": string,"source": string,"status": string
             }[]
                            },
@@ -431,6 +431,9 @@ isOneToOne: true
 "make_offer":
 { Args: { "p_amount_cents": number,"p_thread": string }; Returns: string
                            },
+"mark_thread_read":
+{ Args: { "p_thread": string }; Returns: undefined
+                           },
 "nearest_campus":
 { Args: { "p_lat": number,"p_lng": number }; Returns: number
                            },
@@ -442,6 +445,9 @@ isOneToOne: true
                            },
 "redeem_handoff":
 { Args: { "p_code": string,"p_offer": string }; Returns: string
+                           },
+"remove_listing":
+{ Args: { "p_listing": string }; Returns: undefined
                            },
 "report":
 { Args: { "p_listing_id"?: string,"p_message_id"?: number,"p_note"?: string,"p_reason": string,"p_user_id"?: string }; Returns: number
@@ -461,6 +467,29 @@ isOneToOne: true
                           SetofOptions: {
         from: "*"
         to: "messages"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"unblock_user":
+{ Args: { "p_user": string }; Returns: undefined
+                           },
+"update_listing":
+{ Args: { "p_category": string,"p_description": string,"p_listing": string,"p_price_cents": number,"p_seller": string,"p_title": string }; Returns: {
+              "campus_id": number,
+"category": string,
+"created_at": string,
+"description": string,
+"id": string,
+"price_cents": number,
+"school_id": number | null,
+"search": unknown,
+"seller_id": string,
+"status": string,
+"title": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "listings"
         isOneToOne: true
         isSetofReturn: false
       } },
