@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ReList
 
-## Getting Started
+A student-only marketplace: any verified `.edu` student can buy, and every listing is location-checked to within 5 miles of a campus. Payments go through Stripe Connect: authorize at accept, capture on the in-person handoff scan.
 
-First, run the development server:
+**Stack:** Next.js (App Router, TypeScript) · Supabase (Postgres, Auth, Storage, Realtime) · PostGIS · Stripe Connect (test mode) · pgTAP + Vitest · GitHub Actions
+
+## Run locally (Windows, macOS or Linux)
+Needs Node 24 and Docker Desktop.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npx supabase start          # local Postgres/Auth/Mailpit in Docker; applies migrations
+cp .env.example .env.local  # fill the key from `npx supabase status`
+npm run dev                 # http://localhost:3000
 ```
+Sign-up emails (6-digit codes) land in Mailpit at http://127.0.0.1:54324.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tests
+| Command | What it checks |
+|---|---|
+| `npm run db:test` | pgTAP: RLS on every table, privacy suite (users can't see or write each other's rows), sign-up rules |
+| `npm run db:advisors` | Supabase security + performance advisors, fails on warnings |
+| `npm test` | Vitest unit tests |
+| `npm run typecheck && npm run lint` | TypeScript and ESLint |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## How access control works
+- Every table in `public` gets RLS on automatically (event trigger), and a catalog test fails CI if any table lacks RLS or a policy.
+- Only `.edu` addresses can create an account (Supabase Before User Created hook).
+- Membership (school, campus, 18+) is written only by `create_membership()`, which derives school and campus from the verified email domain on the server.
