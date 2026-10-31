@@ -50,7 +50,7 @@ describe("moderatePhoto", () => {
 describe("moderateText", () => {
   it("sends only the text and returns the categories that fired", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
-    const fetchSpy = vi.fn(async (_url: string, _init: RequestInit) => Response.json({
+    const fetchSpy = vi.fn<(url: string, init: RequestInit) => Promise<Response>>(async () => Response.json({
       results: [{ flagged: true, categories: { harassment: true, violence: false } }],
     }));
     vi.stubGlobal("fetch", fetchSpy);

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, GraduationCap, MapPin, ShieldAlert } from "lucide-react";
+import { ArrowLeft, GraduationCap, MapPin, MessageCircle, ShieldAlert } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { buttonVariants } from "@/components/ui/button";
+import { Report } from "@/components/report-form";
+import { MessageSeller } from "./message-seller";
 import { formatPrice, requireMember, timeAgo } from "@/lib/member";
 
 export default async function ListingPage({ params }: PageProps<"/listings/[id]">) {
@@ -23,6 +26,9 @@ export default async function ListingPage({ params }: PageProps<"/listings/[id]"
     : { data: [] };
   const isSeller = listing.seller_id === membership.user_id;
   const held = listing.listing_photos.filter((p) => p.moderation === "held").length;
+  const { count: threads } = isSeller
+    ? await supabase.from("threads").select("id", { count: "exact", head: true }).eq("listing_id", id).not("last_message_at", "is", null)
+    : { count: null };
 
   return (
     <>
@@ -62,9 +68,15 @@ export default async function ListingPage({ params }: PageProps<"/listings/[id]"
             {isSeller && listing.status !== "active" && (
               <p className="mt-3 text-sm text-muted-foreground capitalize">Status: {listing.status}</p>
             )}
-            <p className="mt-6 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
-              Messaging and offers arrive in the next update. Meet on campus, in public.
+            {isSeller ? (
+              <Link href="/messages" className={buttonVariants({ variant: "outline", className: "press mt-6 w-full" })}>
+                <MessageCircle aria-hidden /> {threads ? `${threads} buyer${threads === 1 ? "" : "s"} messaged you` : "Messages"}
+              </Link>
+            ) : listing.status === "active" && <MessageSeller listingId={listing.id} />}
+            <p className="mt-3 rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+              Meet on campus, in public, and pay only through ReList.
             </p>
+            {!isSeller && <div className="mt-3"><Report target={{ listingId: listing.id }} label="Report listing" /></div>}
           </div>
         </div>
       </main>

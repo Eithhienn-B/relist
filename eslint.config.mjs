@@ -7,6 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Override default ignores of eslint-config-next.
   globalIgnores([
+    "e2e/**", // Playwright MCP snippets are bare function expressions
     // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
