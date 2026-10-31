@@ -1,6 +1,21 @@
 -- Guardrail: no table or view in `public` can ship without row level security.
 begin;
-select plan(4);
+select plan(6);
+
+select is_empty(
+  $$ select table_name, privilege_type from information_schema.role_table_grants
+     where table_schema = 'public' and grantee = 'anon' $$,
+  'anon has no privileges on any public table'
+);
+
+-- security definer skips RLS, so each one must pin search_path and be closed to anon.
+select is_empty(
+  $$ select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.prosecdef
+       and (not coalesce(p.proconfig::text like '%search_path=%', false)
+            or has_function_privilege('anon', p.oid, 'execute')) $$,
+  'every public security definer function pins search_path and denies anon'
+);
 
 select is_empty(
   $$ select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace

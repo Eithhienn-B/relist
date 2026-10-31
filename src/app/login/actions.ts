@@ -14,7 +14,10 @@ export async function sendCode(_prev: LoginState, formData: FormData): Promise<L
   }
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-  if (error) return { step: "email", email, error: error.message };
+  if (error) {
+    const message = error.status === 429 ? "Wait a minute before asking for another code." : "We couldn't send a code. Try again.";
+    return { step: "email", email, error: message };
+  }
   return { step: "code", email };
 }
 

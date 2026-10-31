@@ -52,10 +52,10 @@ select isnt_empty('select 1 from public.config', 'signed-in users can read confi
 select tests.authenticate_as_anon();
 
 select throws_ok('select * from public.memberships', '42501', null, 'anon cannot query memberships at all');
-select is_empty('select 1 from public.schools', 'anon sees no schools');
-select is_empty('select 1 from public.campuses', 'anon sees no campuses');
-select is_empty('select 1 from public.school_domains', 'anon sees no school domains');
-select is_empty('select 1 from public.config', 'anon sees no config');
+select throws_ok('select * from public.schools', '42501', null, 'anon cannot query schools');
+select throws_ok('select * from public.campuses', '42501', null, 'anon cannot query campuses');
+select throws_ok('select * from public.school_domains', '42501', null, 'anon cannot query school domains');
+select throws_ok('select * from public.config', '42501', null, 'anon cannot query config');
 
 select * from finish();
 rollback;
