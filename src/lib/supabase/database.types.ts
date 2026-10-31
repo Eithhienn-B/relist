@@ -59,14 +59,14 @@ isOneToOne: false
                   ]
                 },"config": {
                   Row: {
-                    "fee_bps": number,"fee_threshold_cents": number,"id": number,"listing_radius_m": number,"location_check_ttl": string,"location_max_accuracy_m": number,"min_price_cents": number,"msg_thread_per_minute": number,"msg_user_per_hour": number,"offer_window": string,"reports_per_day": number,"school_id": number | null,"threads_per_hour": number
+                    "fee_bps": number,"fee_threshold_cents": number,"handoff_max_wrong": number,"id": number,"listing_radius_m": number,"location_check_ttl": string,"location_max_accuracy_m": number,"min_price_cents": number,"msg_thread_per_minute": number,"msg_user_per_hour": number,"offer_window": string,"offers_per_hour": number,"reports_per_day": number,"school_id": number | null,"threads_per_hour": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
+                    "fee_bps"?: number,"fee_threshold_cents"?: number,"handoff_max_wrong"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"offers_per_hour"?: number,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
                   }
                   Update: {
-                    "fee_bps"?: number,"fee_threshold_cents"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
+                    "fee_bps"?: number,"fee_threshold_cents"?: number,"handoff_max_wrong"?: number,"id"?: never,"listing_radius_m"?: number,"location_check_ttl"?: string,"location_max_accuracy_m"?: number,"min_price_cents"?: number,"msg_thread_per_minute"?: number,"msg_user_per_hour"?: number,"offer_window"?: string,"offers_per_hour"?: number,"reports_per_day"?: number,"school_id"?: number | null,"threads_per_hour"?: number
                   }
                   Relationships: [
                     {
@@ -171,21 +171,73 @@ isOneToOne: false
                   ]
                 },"messages": {
                   Row: {
-                    "body": string,"created_at": string,"held": boolean,"id": number,"nudge": boolean,"sender_id": string,"thread_id": string
+                    "body": string,"created_at": string,"event": string | null,"held": boolean,"id": number,"nudge": boolean,"offer_id": string | null,"sender_id": string | null,"thread_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body": string,"created_at"?: string,"held"?: boolean,"id"?: never,"nudge"?: boolean,"sender_id": string,"thread_id": string
+                    "body": string,"created_at"?: string,"event"?: string | null,"held"?: boolean,"id"?: never,"nudge"?: boolean,"offer_id"?: string | null,"sender_id"?: string | null,"thread_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"held"?: boolean,"id"?: never,"nudge"?: boolean,"sender_id"?: string,"thread_id"?: string
+                    "body"?: string,"created_at"?: string,"event"?: string | null,"held"?: boolean,"id"?: never,"nudge"?: boolean,"offer_id"?: string | null,"sender_id"?: string | null,"thread_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "messages_offer_id_fkey"
+      columns: ["offer_id"]
+isOneToOne: false
+      referencedRelation: "offers"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "messages_thread_id_fkey"
       columns: ["thread_id"]
 isOneToOne: false
       referencedRelation: "threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"offers": {
+                  Row: {
+                    "accepted_at": string | null,"amount_cents": number,"buyer_id": string,"created_at": string,"ended_at": string | null,"expires_at": string | null,"id": string,"listing_id": string,"payment_ref": string | null,"seller_id": string,"state": string,"thread_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "accepted_at"?: string | null,"amount_cents": number,"buyer_id": string,"created_at"?: string,"ended_at"?: string | null,"expires_at"?: string | null,"id"?: string,"listing_id": string,"payment_ref"?: string | null,"seller_id": string,"state"?: string,"thread_id": string
+                  }
+                  Update: {
+                    "accepted_at"?: string | null,"amount_cents"?: number,"buyer_id"?: string,"created_at"?: string,"ended_at"?: string | null,"expires_at"?: string | null,"id"?: string,"listing_id"?: string,"payment_ref"?: string | null,"seller_id"?: string,"state"?: string,"thread_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "offers_listing_id_fkey"
+      columns: ["listing_id"]
+isOneToOne: false
+      referencedRelation: "listings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "offers_thread_id_fkey"
+      columns: ["thread_id"]
+isOneToOne: false
+      referencedRelation: "threads"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payment_events": {
+                  Row: {
+                    "amount_cents": number,"created_at": string,"error": string | null,"fee_cents": number,"id": number,"kind": string,"offer_id": string,"processed_at": string | null,"provider_ref": string | null,"status": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"created_at"?: string,"error"?: string | null,"fee_cents"?: number,"id"?: never,"kind": string,"offer_id": string,"processed_at"?: string | null,"provider_ref"?: string | null,"status"?: string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"created_at"?: string,"error"?: string | null,"fee_cents"?: number,"id"?: never,"kind"?: string,"offer_id"?: string,"processed_at"?: string | null,"provider_ref"?: string | null,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payment_events_offer_id_fkey"
+      columns: ["offer_id"]
+isOneToOne: false
+      referencedRelation: "offers"
       referencedColumns: ["id"]
     }
                   ]
@@ -269,13 +321,42 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"trades": {
+                  Row: {
+                    "amount_cents": number,"buyer_id": string,"captured_at": string | null,"created_at": string,"fee_cents": number,"id": number,"listing_id": string,"offer_id": string,"seller_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount_cents": number,"buyer_id": string,"captured_at"?: string | null,"created_at"?: string,"fee_cents": number,"id"?: never,"listing_id": string,"offer_id": string,"seller_id": string
+                  }
+                  Update: {
+                    "amount_cents"?: number,"buyer_id"?: string,"captured_at"?: string | null,"created_at"?: string,"fee_cents"?: number,"id"?: never,"listing_id"?: string,"offer_id"?: string,"seller_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "trades_listing_id_fkey"
+      columns: ["listing_id"]
+isOneToOne: false
+      referencedRelation: "listings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "trades_offer_id_fkey"
+      columns: ["offer_id"]
+isOneToOne: true
+      referencedRelation: "offers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "admin_reports":
+            "accept_offer":
+{ Args: { "p_offer": string }; Returns: undefined
+                           },
+"admin_reports":
 { Args: Record<PropertyKey, never>; Returns: {
               "created_at": string,"flags": (string)[],"id": number,"listing_id": string,"listing_status": string,"listing_title": string,"message_id": number,"note": string,"quoted": string,"reason": string,"reported_email": string,"reported_suspended": boolean,"reported_user_id": string,"reporter_email": string,"source": string,"status": string
             }[]
@@ -293,6 +374,9 @@ isOneToOne: false
                            },
 "can_send_message":
 { Args: { "p_thread": string }; Returns: undefined
+                           },
+"cancel_offer":
+{ Args: { "p_offer": string }; Returns: undefined
                            },
 "check_location":
 { Args: { "p_accuracy_m": number,"p_lat": number,"p_lng": number }; Returns: {
@@ -336,11 +420,28 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"decline_offer":
+{ Args: { "p_offer": string }; Returns: undefined
+                           },
+"handoff_code":
+{ Args: { "p_offer": string }; Returns: {
+              "code": string,"seconds_left": number
+            }[]
+                           },
+"make_offer":
+{ Args: { "p_amount_cents": number,"p_thread": string }; Returns: string
+                           },
 "nearest_campus":
 { Args: { "p_lat": number,"p_lng": number }; Returns: number
                            },
 "open_thread":
 { Args: { "p_listing": string }; Returns: string
+                           },
+"payment_result":
+{ Args: { "p_error"?: string,"p_event": number,"p_ok": boolean,"p_ref"?: string }; Returns: undefined
+                           },
+"redeem_handoff":
+{ Args: { "p_code": string,"p_offer": string }; Returns: string
                            },
 "report":
 { Args: { "p_listing_id"?: string,"p_message_id"?: number,"p_note"?: string,"p_reason": string,"p_user_id"?: string }; Returns: number
@@ -349,10 +450,12 @@ isOneToOne: false
 { Args: { "p_body": string,"p_flags": (string)[],"p_nudge": boolean,"p_sender": string,"p_thread": string }; Returns: {
               "body": string,
 "created_at": string,
+"event": string | null,
 "held": boolean,
 "id": number,
 "nudge": boolean,
-"sender_id": string,
+"offer_id": string | null,
+"sender_id": string | null,
 "thread_id": string
             }
                           SetofOptions: {
@@ -360,7 +463,10 @@ isOneToOne: false
         to: "messages"
         isOneToOne: true
         isSetofReturn: false
-      } }
+      } },
+"withdraw_offer":
+{ Args: { "p_offer": string }; Returns: undefined
+                           }
           }
           Enums: {
             [_ in never]: never

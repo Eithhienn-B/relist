@@ -1,12 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Ban, Loader2, SendHorizontal, ShieldAlert, ShieldCheck } from "lucide-react";
+import { Ban, CircleCheck, CircleX, HandCoins, Hourglass, Loader2, SendHorizontal, ShieldAlert, ShieldCheck, Undo2 } from "lucide-react";
 import { Report } from "@/components/report-form";
 import { Button } from "@/components/ui/button";
 import { detectOffPlatform, type OffPlatformKind } from "@/lib/nudge";
 import { createClient } from "@/lib/supabase/client";
 import { blockUser, sendMessage, type Message } from "../actions";
+import { OfferPanel, type Offer } from "./offer-panel";
 
 // key stays the same when an optimistic row is swapped for the saved one, so it isn't remounted or re-announced.
 type Row = Message & { key: string; pending?: boolean };
@@ -28,11 +29,14 @@ function nudgeCopy(kinds: OffPlatformKind[]) {
   return "Keep the chat here, so report and block still work if something feels off.";
 }
 
-export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blockedByMe }: {
-  threadId: string; me: string; otherId: string; otherLabel: string;
+export function Chat({ threadId, listingId, me, otherId, otherLabel, initial, ended, blockedByMe, isSeller, initialOffers, initialListingStatus, listingPrice }: {
+  threadId: string; listingId: string; me: string; otherId: string; otherLabel: string;
   initial: Message[]; ended: boolean; blockedByMe: boolean;
+  isSeller: boolean; initialOffers: Offer[]; initialListingStatus: string | null; listingPrice: number | null;
 }) {
   const [rows, setRows] = useState<Row[]>(() => initial.map(toRow));
+  const [offers, setOffers] = useState(initialOffers);
+  const [listingStatus, setListingStatus] = useState(initialListingStatus);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEnded, setEnded] = useState(ended);
@@ -43,16 +47,35 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
   const tempId = useRef(-1);
   const lastId = useRef(Math.max(0, ...initial.map((m) => m.id)));
 
+  // Offer state and listing status, re-read whenever an offer event lands (from either side or the expiry job).
+  // Only the newest request may write state, so a slow older response can't roll the panel back.
+  const offersSeq = useRef(0);
+  const refreshOffers = useCallback(async () => {
+    const seq = ++offersSeq.current;
+    const supabase = createClient();
+    const [{ data: o, error: oErr }, { data: l, error: lErr }] = await Promise.all([
+      supabase.from("offers").select("id, state, amount_cents, expires_at, created_at").eq("thread_id", threadId).order("created_at", { ascending: false }),
+      supabase.from("listings").select("status").eq("id", listingId).maybeSingle(),
+    ]);
+    if (seq !== offersSeq.current || oErr || lErr) return;
+    if (o) setOffers(o);
+    setListingStatus(l?.status ?? null);
+  }, [threadId, listingId]);
+
   // Rows newer than the last one we have: covers the gap before SUBSCRIBED and any reconnect or backgrounded tab.
   const catchUp = useCallback(async () => {
     const { data } = await createClient().from("messages").select("*")
       .eq("thread_id", threadId).gt("id", lastId.current).order("id");
     if (data?.length) setRows((prev) => merge(prev, data));
-  }, [threadId]);
+    // Always re-read offers: an event row with a lower id can commit after a higher one we already have.
+    void refreshOffers();
+  }, [threadId, refreshOffers]);
 
   useEffect(() => {
     for (const r of rows) if (r.id > lastId.current) lastId.current = r.id;
   }, [rows]);
+
+
 
   // Live inserts. RLS on messages decides what this subscriber receives (held rows and other threads never arrive).
   useEffect(() => {
@@ -66,7 +89,10 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
       channel = supabase
         .channel(`thread:${threadId}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `thread_id=eq.${threadId}` },
-          ({ new: msg }) => setRows((prev) => merge(prev, [msg as Message])))
+          ({ new: msg }) => {
+            setRows((prev) => merge(prev, [msg as Message]));
+            if ((msg as Message).event) void refreshOffers(); // an offer moved: re-read its state and the listing's
+          })
         .subscribe((status) => { if (status === "SUBSCRIBED") void catchUp(); });
     });
     const onVisible = () => { if (document.visibilityState === "visible") void catchUp(); };
@@ -76,7 +102,7 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
       document.removeEventListener("visibilitychange", onVisible);
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [threadId, catchUp]);
+  }, [threadId, catchUp, refreshOffers]);
 
   // Follow new messages only when the reader is already near the bottom (or just sent one).
   const follow = useRef(true);
@@ -98,7 +124,7 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
     const id = tempId.current--;
     const key = `temp${id}`;
     follow.current = true;
-    setRows((prev) => [...prev, { id, key, thread_id: threadId, sender_id: me, body, held: false, nudge: false, created_at: new Date().toISOString(), pending: true }]);
+    setRows((prev) => [...prev, { id, key, thread_id: threadId, sender_id: me, body, held: false, nudge: false, event: null, offer_id: null, created_at: new Date().toISOString(), pending: true }]);
     setDraft("");
     setError(null);
     let res: Awaited<ReturnType<typeof sendMessage>>;
@@ -143,10 +169,16 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
         </div>
       )}
       <ol role="log" aria-label="Messages" className="flex flex-1 flex-col gap-2 py-2">
-        {rows.map((r) => <Bubble key={r.key} row={r} mine={r.sender_id === me} otherLabel={otherLabel} />)}
+        {rows.map((r) => r.event
+          ? <EventCard key={r.key} row={r} mine={r.sender_id === me} otherLabel={otherLabel} />
+          : <Bubble key={r.key} row={r} mine={r.sender_id === me} otherLabel={otherLabel} />)}
       </ol>
       <div ref={bottom} />
 
+      {!isEnded && (
+        <OfferPanel threadId={threadId} isSeller={isSeller} otherLabel={otherLabel} listingStatus={listingStatus}
+          listingPrice={listingPrice} offers={offers} onChange={() => { void refreshOffers(); void catchUp(); }} />
+      )}
       {isEnded ? (
         <p role="status" className="mt-2 rounded-lg bg-muted p-3 text-center text-sm text-muted-foreground">
           {blockedByMe ? `You blocked this ${otherLabel.toLowerCase()}. ` : ""}{ENDED}
@@ -224,6 +256,29 @@ function Bubble({ row, mine, otherLabel }: { row: Row; mine: boolean; otherLabel
           ? <span className="text-amber-700 dark:text-amber-400">Held for review. Only you can see this.</span>
           : <time dateTime={row.created_at}>{row.pending ? "Sending…" : timeFmt.format(new Date(row.created_at))}</time>}
         {!mine && !row.held && row.id > 0 && <Report target={{ messageId: row.id }} />}
+      </div>
+    </li>
+  );
+}
+
+const EVENT_ICON: Record<string, React.ReactNode> = {
+  offer: <HandCoins />, accepted: <ShieldCheck />, completed: <CircleCheck />,
+  declined: <CircleX />, withdrawn: <Undo2 />, cancelled: <CircleX />, expired: <Hourglass />,
+};
+
+// Offer events sit in the timeline as quiet system lines; the panel below carries the actions.
+function EventCard({ row, mine, otherLabel }: { row: Row; mine: boolean; otherLabel: string }) {
+  const strong = row.event === "completed";
+  return (
+    <li className="my-1 flex justify-center">
+      <div className={`flex max-w-[90%] items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${
+        strong ? "border-brand/30 bg-brand-soft text-foreground" : "bg-background text-muted-foreground"}`}>
+        <span aria-hidden className={`[&_svg]:size-3.5 ${strong || row.event === "accepted" ? "text-brand" : ""}`}>{EVENT_ICON[row.event!]}</span>
+        <span>
+          <span className="sr-only">{row.sender_id ? (mine ? "You: " : `${otherLabel}: `) : "ReList: "}</span>
+          <span className="font-medium text-foreground tabular-nums">{row.body}</span>
+          {" · "}<time dateTime={row.created_at}>{timeFmt.format(new Date(row.created_at))}</time>
+        </span>
       </div>
     </li>
   );

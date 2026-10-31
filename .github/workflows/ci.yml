@@ -19,6 +19,8 @@ jobs:
       - run: supabase db start
       - name: pgTAP tests (RLS catalog, privacy suite, sign-up)
         run: supabase test db
+      - name: Parallel accepts (two sessions race for one listing)
+        run: bash scripts/parallel-accept.sh
       - name: Advisors (security + performance)
         run: supabase db advisors --local --level warn --fail-on warn
       - name: Generated types are up to date
