@@ -6,17 +6,11 @@ import { moderateText } from "@/lib/moderation";
 import { detectOffPlatform } from "@/lib/nudge";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
+import { isUuid, userMessage } from "@/lib/chat-errors";
 import { REPORT_REASONS } from "@/lib/report-reasons";
 import { createClient } from "@/lib/supabase/server";
 
 export type Message = Tables<"messages">;
-
-// Errors our SQL functions raise for the user (bad input, rate limit, ended/suspended); anything else stays generic.
-// Postgres raises some of the same codes itself ("permission denied for ..."); those stay generic.
-const userMessage = (error: { code?: string; message: string }, fallback: string) =>
-  ["22023", "54000", "42501", "P0002"].includes(error.code ?? "") && !/^(permission denied|stack depth)/i.test(error.message)
-    ? error.message : fallback;
-const isUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v);
 
 export async function startThread(listingId: string) {
   if (!isUuid(listingId)) return "Listing not found";
@@ -65,7 +59,6 @@ export async function blockUser(threadId: string, userId: string) {
   if (error) return userMessage(error, "Couldn't block. Try again.");
   revalidatePath(`/messages/${threadId}`);
 }
-
 
 export async function report(target: { messageId: number } | { listingId: string }, reason: string, note: string) {
   if (typeof reason !== "string" || !Object.hasOwn(REPORT_REASONS, reason)) return "Pick a reason.";

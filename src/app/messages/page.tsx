@@ -52,12 +52,13 @@ export default async function MessagesPage() {
                       {t.listings && <span className="shrink-0 text-sm tabular-nums text-muted-foreground">{formatPrice(t.listings.price_cents)}</span>}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">
-                      <span className="font-medium">{m ? (m.sender_id === me ? "You" : role) : role}:</span>{" "}
-                      {m ? (m.held ? "Held for review" : m.body) : "No messages yet"}
+                      {m ? (
+                        <><span className="font-medium">{m.sender_id === me ? "You" : role}:</span> {m.held ? "Held for review" : m.body}</>
+                      ) : t.last_message_at ? `Chat with the ${role.toLowerCase()}` : "No messages yet"}
                     </p>
                   </div>
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {t.closed_at ? "Ended" : timeAgo(m?.created_at ?? t.created_at)}
+                    {t.closed_at ? "Ended" : timeAgo(m?.created_at ?? t.last_message_at ?? t.created_at)}
                   </span>
                 </Link>
               </li>

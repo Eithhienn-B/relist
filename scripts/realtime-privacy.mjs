@@ -32,7 +32,7 @@ async function listen(name, c) {
     c.channel(`thread:${threadId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `thread_id=eq.${threadId}` },
         (p) => got[name].push(p.new.body))
-      .subscribe((s, err) => { status[name] = err ? `${s}: ${err.message}` : s; if (s !== "SUBSCRIBED" || name) resolve(); });
+      .subscribe((s, err) => { status[name] = err ? `${s}: ${err.message}` : s; resolve(); });
     setTimeout(resolve, 4000);
   });
 }

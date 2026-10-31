@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/button";
 import { REPORT_REASONS } from "@/lib/report-reasons";
 
 // "Report" link that opens an inline form. Used for messages and listings.
-export function Report({ target, label = "Report", className = "" }: {
-  target: { messageId: number } | { listingId: string }; label?: string; className?: string;
-}) {
+export function Report({ target, label = "Report" }: { target: { messageId: number } | { listingId: string }; label?: string }) {
   const [open, setOpen] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +16,7 @@ export function Report({ target, label = "Report", className = "" }: {
   if (done) return <span role="status" className="text-[11px] text-muted-foreground">Reported. Thanks for looking out.</span>;
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={`-mx-1.5 inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-[11px] text-muted-foreground hover:text-foreground ${className}`}>
+      <button type="button" onClick={() => setOpen(true)} className={`-mx-1.5 inline-flex min-h-6 items-center gap-1 rounded px-1.5 text-[11px] text-muted-foreground hover:text-foreground`}>
         <Flag aria-hidden className="size-3" /> {label}
       </button>
     );

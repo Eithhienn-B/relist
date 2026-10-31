@@ -471,7 +471,8 @@ begin
       raise exception 'This report has no user.' using errcode = '22023';
     end if;
     -- Supabase Auth refuses sign-in and token refresh for a banned user; existing tokens run out within the JWT expiry.
-    update auth.users set banned_until = 'infinity' where id = v_report.reported_user_id;
+    -- Not 'infinity': Auth (Go) can't scan it and every sign-in for the user fails with a 500.
+    update auth.users set banned_until = now() + interval '100 years' where id = v_report.reported_user_id;
     update public.listings set status = 'removed' where seller_id = v_report.reported_user_id and status <> 'sold';
   elsif p_action is distinct from 'dismiss' then
     raise exception 'Unknown action' using errcode = '22023';

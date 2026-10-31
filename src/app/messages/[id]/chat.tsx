@@ -116,7 +116,7 @@ export function Chat({ threadId, me, otherId, otherLabel, initial, ended, blocke
         : prev.map((r) => (r.id === id ? { ...saved, key } : r)));
     } else {
       setRows((prev) => prev.filter((r) => r.id !== id));
-      setDraft(body);
+      setDraft((d) => d || body); // don't clobber a newer draft typed while this one was in flight
       setError(res.error);
       if (res.error === ENDED) setEnded(true);
     }

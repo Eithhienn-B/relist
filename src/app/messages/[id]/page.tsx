@@ -12,7 +12,7 @@ export default async function ThreadPage({ params }: PageProps<"/messages/[id]">
 
   const { data: thread } = await supabase
     .from("threads")
-    .select("id, listing_id, buyer_id, seller_id, closed_at, listings(title, price_cents, status, listing_photos(path, position))")
+    .select("id, listing_id, buyer_id, seller_id, closed_at, listings(title, price_cents, listing_photos(path, position))")
     .eq("id", id)
     .maybeSingle();
   if (!thread) notFound();

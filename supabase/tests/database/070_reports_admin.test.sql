@@ -1,6 +1,6 @@
 -- Reports and the admin queue. Bob buys from Alice, Carol is a third member, Dave is an admin.
 begin;
-select plan(32);
+select plan(33);
 
 select id as indy from public.campuses where name = 'Indianapolis' \gset
 select tests.create_user('alice@purdue.edu') as alice \gset
@@ -88,6 +88,11 @@ select lives_ok(format($$ select public.admin_resolve_report(%s, 'suspend_user')
   'an admin suspends the user from another open report');
 select throws_ok(format($$ select public.admin_resolve_report(%s, 'dismiss') $$, :r1), '22023', null,
   'a resolved report cannot be resolved again');
+reset role;
+select ok((select banned_until between now() + interval '50 years' and 'infinity'::timestamptz - interval '1 day'
+           from auth.users where id = :'alice'),
+  'suspension is a finite far-future ban (Supabase Auth fails on infinity)');
+select tests.authenticate_as(:'dave');
 select tests.authenticate_as(:'alice');
 select throws_ok(format('select public.can_send_message(%L)', :'t1'), '42501', 'Your account is suspended.',
   'a suspended user cannot send');
