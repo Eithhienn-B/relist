@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { Check, ImagePlus, LocateFixed, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ export function SellForm({ initialCheck, minPrice }: { initialCheck?: Passed; mi
   const [checkError, setCheckError] = useState<string>();
   const [checking, setChecking] = useState(false);
   const [error, action, saving] = useActionState(createListing, undefined);
+  const [, startTransition] = useTransition();
   // Each picked file keeps its preview URL; URLs are revoked on remove and on unmount.
   const [photos, setPhotos] = useState<{ file: File; url: string }[]>([]);
   const latest = useRef(photos);
@@ -44,11 +45,14 @@ export function SellForm({ initialCheck, minPrice }: { initialCheck?: Passed; mi
     }
   }
 
-  // Keep the chosen files on the form submit: the visible input is reset, so append them here.
-  function submit(formData: FormData) {
+  // Submit by hand: a form action would reset every field when the server returns an error.
+  // The file input is cleared after each pick, so the chosen photos are appended here.
+  function submit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
     formData.delete("photos");
     photos.forEach((p) => formData.append("photos", p.file));
-    return action(formData);
+    startTransition(() => action(formData));
   }
 
   if (!check) {
@@ -71,7 +75,7 @@ export function SellForm({ initialCheck, minPrice }: { initialCheck?: Passed; mi
   }
 
   return (
-    <form action={submit} className="mt-6 grid gap-5">
+    <form onSubmit={submit} className="mt-6 grid gap-5">
       <div className="flex gap-2 rounded-lg bg-brand-soft px-3 py-2 text-sm">
         <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" />
         <p>

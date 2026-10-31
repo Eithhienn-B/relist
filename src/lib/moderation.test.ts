@@ -15,6 +15,23 @@ describe("moderatePhoto", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  it("fails closed in production when the key is missing", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    vi.stubEnv("NODE_ENV", "production");
+    await expect(moderatePhoto(Buffer.from("x"), "lamp")).rejects.toThrow("OPENAI_API_KEY");
+  });
+
+  it("flags when any per-input result is flagged (e.g. the image, not the text)", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "test-key");
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({
+      results: [
+        { flagged: false, categories: { violence: false } },
+        { flagged: true, categories: { "sexual/minors": true } },
+      ],
+    })));
+    expect(await moderatePhoto(Buffer.from("x"), "lamp")).toEqual({ flagged: true, categories: ["sexual/minors"] });
+  });
+
   it("returns the categories that fired", async () => {
     vi.stubEnv("OPENAI_API_KEY", "test-key");
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({

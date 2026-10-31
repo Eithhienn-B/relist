@@ -37,7 +37,8 @@ type Check = { checked_at: string; campuses: { name: string; schools: { short_na
 // The passing check still inside location_check_ttl (Postgres interval text like "24:00:00"), if any.
 function stillValid(check: Check, ttl: string | undefined) {
   const ttlHours = Number(ttl?.split(":")[0] ?? 24);
-  if (!check?.campuses) return undefined;
+  // Only "HH:MM:SS" parses; anything else (e.g. "1 day") just asks for a fresh check.
+  if (!check?.campuses || !Number.isFinite(ttlHours)) return undefined;
   const expiresAt = new Date(new Date(check.checked_at).getTime() + ttlHours * 3600_000);
   if (expiresAt.getTime() <= Date.now()) return undefined;
   return { ok: true as const, campus: check.campuses.name, school: check.campuses.schools.short_name, expiresAt: expiresAt.toISOString() };

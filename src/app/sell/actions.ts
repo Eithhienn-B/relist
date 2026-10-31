@@ -40,6 +40,14 @@ export async function nearestCampus(lat: number, lng: number) {
 }
 
 export async function createListing(_prev: string | undefined, formData: FormData) {
+  // Cheap checks before any photo work: signed in, and under the daily cap (the RPC re-checks both).
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getClaims();
+  if (!auth) return "Your session expired. Sign in again.";
+  const { count } = await supabase.from("listings").select("id", { count: "exact", head: true })
+    .eq("seller_id", auth.claims.sub).gte("created_at", new Date(Date.now() - 86_400_000).toISOString());
+  if ((count ?? 0) >= 20) return "You've hit today's listing limit (20).";
+
   const files = formData.getAll("photos").filter((f): f is File => f instanceof File && f.size > 0);
   if (!files.length) return "Add at least one photo.";
   if (files.length > MAX_PHOTOS) return `You can add up to ${MAX_PHOTOS} photos.`;
@@ -54,9 +62,10 @@ export async function createListing(_prev: string | undefined, formData: FormDat
   if (!Number.isFinite(priceCents)) return "Enter a price.";
 
   // Strip EXIF and moderate before anything is saved, so a bad file never leaves a half-made listing.
-  let photos: Buffer[];
+  // One at a time: a full-size decode can take a few hundred MB.
+  const photos: Buffer[] = [];
   try {
-    photos = await Promise.all(files.map(async (f) => processPhoto(Buffer.from(await f.arrayBuffer()))));
+    for (const f of files) photos.push(await processPhoto(Buffer.from(await f.arrayBuffer())));
   } catch {
     return "One of those files isn't a photo we can read. Try JPG, PNG or WebP.";
   }
@@ -66,22 +75,28 @@ export async function createListing(_prev: string | undefined, formData: FormDat
     photos.map((p) => moderatePhoto(p, text).catch(() => ({ flagged: true, categories: ["moderation_unavailable"] }))),
   );
 
-  const supabase = await createClient();
   const { data: listing, error } = await supabase
     .rpc("create_listing", { p_title: title, p_description: description, p_price_cents: priceCents, p_category: category });
   if (error) return userMessage(error, "We couldn't save your listing. Try again.");
 
   // The listing id came from create_listing as this user, so it's theirs; store photos with the secret key.
   const admin = createAdminClient();
-  const rows = [];
-  for (const [i, webp] of photos.entries()) {
-    const path = `${listing.id}/${crypto.randomUUID()}.webp`;
-    const { error: uploadError } = await admin.storage.from("listing-photos").upload(path, webp, { contentType: "image/webp" });
-    if (uploadError) return "Your listing is saved, but a photo failed to upload.";
-    rows.push({ listing_id: listing.id, path, position: i, moderation: verdicts[i].flagged ? "held" : "approved", flags: verdicts[i].categories });
+  const rows = photos.map((_, i) => ({
+    listing_id: listing.id,
+    path: `${listing.id}/${crypto.randomUUID()}.webp`,
+    position: i,
+    moderation: verdicts[i].flagged ? "held" : "approved",
+    flags: verdicts[i].categories,
+  }));
+  const uploads = await Promise.all(rows.map((r, i) =>
+    admin.storage.from("listing-photos").upload(r.path, photos[i], { contentType: "image/webp" })));
+  const failed = uploads.some((u) => u.error) || (await admin.from("listing_photos").insert(rows)).error;
+  if (failed) {
+    // Roll back so a retry doesn't leave a photo-less duplicate behind.
+    await admin.storage.from("listing-photos").remove(rows.map((r) => r.path));
+    await admin.from("listings").delete().eq("id", listing.id);
+    return "Your photos didn't upload. Nothing was posted; try again.";
   }
-  const { error: rowError } = await admin.from("listing_photos").insert(rows);
-  if (rowError) return "Your listing is saved, but its photos failed to attach.";
 
   redirect(`/listings/${listing.id}`);
 }

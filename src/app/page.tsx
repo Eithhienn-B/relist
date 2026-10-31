@@ -30,7 +30,7 @@ export default async function Browse({ searchParams }: PageProps<"/">) {
 
   const paths = (listings ?? []).flatMap((l) => l.listing_photos.map((p) => p.path));
   const { data: signed } = paths.length
-    ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600)
+    ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 600)
     : { data: [] };
   const urlFor = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
 
@@ -43,7 +43,7 @@ export default async function Browse({ searchParams }: PageProps<"/">) {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
           <form className="relative flex-1" role="search">
-            {campusId && <input type="hidden" name="campus" value={campusId} />}
+            <input type="hidden" name="campus" value={campusId ?? "all"} />
             <Search aria-hidden className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input name="q" type="search" defaultValue={q} placeholder="Search desks, textbooks, mini fridges…"
               aria-label="Search listings" className="h-10 pl-9" />

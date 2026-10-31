@@ -30,6 +30,12 @@ describe("processPhoto", () => {
     expect([meta.width, meta.height]).toEqual([20, 40]);
   });
 
+  it("rejects pixel bombs: a tiny file that decodes to 30 MP", async () => {
+    const bomb = await sharp({ create: { width: 6000, height: 5000, channels: 3, background: "#fff" } }).png().toBuffer();
+    expect(bomb.length).toBeLessThan(1_000_000);
+    await expect(processPhoto(bomb)).rejects.toThrow(/pixel limit/i);
+  });
+
   it("rejects files that aren't images", async () => {
     await expect(processPhoto(Buffer.from("not an image"))).rejects.toThrow();
   });

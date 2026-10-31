@@ -19,7 +19,7 @@ export default async function ListingPage({ params }: PageProps<"/listings/[id]"
 
   const paths = listing.listing_photos.map((p) => p.path);
   const { data: signed } = paths.length
-    ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 3600)
+    ? await supabase.storage.from("listing-photos").createSignedUrls(paths, 600)
     : { data: [] };
   const isSeller = listing.seller_id === membership.user_id;
   const held = listing.listing_photos.filter((p) => p.moderation === "held").length;
